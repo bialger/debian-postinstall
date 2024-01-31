@@ -5,8 +5,8 @@ import platform
 import subprocess
 import argparse
 
-
 default_string = "@"
+
 
 def is_success(command):
     exit_code = os.system(command) >> 8
@@ -21,7 +21,7 @@ def check_for_error(is_ok, error_string, exit_code=1):
 def print_error_and_exit(error_string, exit_code=1):
     if error_string != "":
         print(error_string)
-    
+
     exit(exit_code)
 
 
@@ -38,20 +38,20 @@ def create_alias(alias_name, package_name):
     run_command = "flatpak run " + package_name
     content = '"#! /bin/sh\n' + run_command + '\n"'
     is_ok = is_success("sudo touch " + filename)
-    
+
     if not is_ok:
         return False
-    
+
     is_ok = is_success("sudo echo " + content + " >> " + filename)
-    
+
     if not is_ok:
         return False
-    
+
     is_ok = is_success("sudo chmod +x " + filename)
-    
+
     if is_ok:
         print("Flatpak package " + package_name + " successfully installed. Use " + alias_name + " to run.")
-    
+
     return is_ok
 
 
@@ -59,55 +59,56 @@ def choose_package(name):
     search_result = get_output("flatpak search " + name).split("\n")
     check_for_error("." in "\n".join(search_result), "No package named " + name + " found")
     print("Found " + str(len(search_result)) + " packages:\n")
-    
+
     for i in range(len(search_result)):
         print(str(i + 1) + ". ", end="\t")
         print(search_result[i])
-    
-    choise = input("\nEnter suitable package number in list. If there is no such, enter any other key: ")
-    check_for_error(choise.isdigit(), "No suitable package found", 0)
-    chosen_string = search_result[int(choise) - 1].split()
+
+    choice = input("\nEnter suitable package number in list. If there is no such, enter any other key: ")
+    check_for_error(choice.isdigit(), "No suitable package found", 0)
+    chosen_string = search_result[int(choice) - 1].split()
     repo_name = chosen_string[-1]
     result = default_string
-    
+
     for i in reversed(range(0, len(chosen_string))):
         candidate = chosen_string[i]
-        
+
         if "." in candidate and not "".join(candidate.split('.')).isdigit():
             result = candidate
             break
-    
-    check_for_error(result != default_string, "Error in chosing package")
-    
+
+    check_for_error(result != default_string, "Error in choosing package")
+
     return [result, repo_name]
 
 
 def find_suitable_alias(given_alias):
     alias = given_alias
-    choise = input("Is alias " + alias + " suitable? (y/n): ")
-        
-    if not is_positive(choise):
+    choice = input("Is alias " + alias + " suitable? (y/n): ")
+
+    if not is_positive(choice):
         alias = input("Enter suitable alias: ")
-    
+
     return alias
 
 
 def choose_alias(package_name, given_alias=""):
     if given_alias != "":
         return find_suitable_alias(given_alias)
-    
+
     search_result = get_output("flatpak search " + package_name).split("\n")
     check_for_error("." in "\n".join(search_result), "No package named " + package_name + " found")
     chosen_string = search_result[0].split()
     alias = chosen_string[0].lower()
-    
+
     return find_suitable_alias(alias)
 
 
 parser = argparse.ArgumentParser(
-                    prog='flatpak-install',
-                    description='This program uses flatpak to install programs and creates small scripts in /usr/bin to easily run them. Run from root omly.',
-                    epilog='Created by bialger.'
+    prog='flatpak-install',
+    description='This program uses flatpak to install programs and creates small scripts in /usr/bin to easily run '
+                'them. Run from root only.',
+    epilog='Created by bialger.'
 )
 
 parser.add_argument('package_name', type=str, help='Name of reqired package')
@@ -138,7 +139,7 @@ flatpak_path = get_output("whereis flatpak").split()[1]
 if args.f__from_ref:
     print(get_output(flatpak_path + " install " + args.package_name + " -y"))
     package_name = ".".join(args.package_name.split('/')[-1].split('.')[:-1])
-    
+
     check_for_error(is_success("flatpak run " + package_name), "No flatpak package in " + args.package_name)
 else:
     package_info = choose_package(args.package_name)
@@ -147,7 +148,7 @@ else:
     check_for_error(is_success("flatpak run " + package_name), "No flatpak package named " + package_name)
 
 alias = args.a__alias
-    
+
 if alias == default_string and args.f__from_ref:
     alias = choose_alias(package_name)
 elif alias == default_string:
