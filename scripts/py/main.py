@@ -33,7 +33,7 @@ for i in range(len(timezones)):
 
 choice = input("\nEnter suitable timezone number in list. If default timezone is suitable, enter any other key: ")
 
-if choice.isdigit():
+if choice.isdigit() and 0 < int(choice) <= len(timezones):
     print(functions.get_output("timedatectl set-timezone " + timezones[int(choice) - 1] + " --adjust-system-clock"))
 
 print(functions.get_output("sudo timedatectl set-ntp yes"))
@@ -41,6 +41,5 @@ print(functions.get_output("./scripts/sh/package_managers.sh"))
 print(functions.get_output("./scripts/sh/firewall.sh"))
 print(functions.get_output("./scripts/sh/utils.sh"))
 print(functions.get_output("./scripts/sh/browsers.sh"))
-
 print()
 print("Debian post-installation script finished")

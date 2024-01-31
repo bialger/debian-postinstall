@@ -65,7 +65,8 @@ def choose_package(name):
         print(search_result[i])
 
     choice = input("\nEnter suitable package number in list. If there is no such, enter any other key: ")
-    check_for_error(choice.isdigit(), "No suitable package found", 0)
+    check_for_error(choice.isdigit() and 0 < int(choice) <= len(search_result),
+                    "No suitable package found", 0)
     chosen_string = search_result[int(choice) - 1].split()
     repo_name = chosen_string[-1]
     result = default_string
