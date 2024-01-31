@@ -41,5 +41,6 @@ print(functions.get_output("./scripts/sh/package_managers.sh"))
 print(functions.get_output("./scripts/sh/firewall.sh"))
 print(functions.get_output("./scripts/sh/utils.sh"))
 print(functions.get_output("./scripts/sh/browsers.sh"))
+# TODO: add /etc/default/grub and /etc/apt/sources.list fixing
 print()
 print("Debian post-installation script finished")
