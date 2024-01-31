@@ -1,0 +1,160 @@
+#! /usr/bin/python3
+
+import os
+import platform
+import subprocess
+import argparse
+
+
+default_string = "@"
+
+def is_success(command):
+    exit_code = os.system(command) >> 8
+    return exit_code == 0
+
+
+def check_for_error(is_ok, error_string, exit_code=1):
+    if not is_ok:
+        print_error_and_exit(error_string, exit_code)
+
+
+def print_error_and_exit(error_string, exit_code=1):
+    if error_string != "":
+        print(error_string)
+    
+    exit(exit_code)
+
+
+def get_output(command):
+    return subprocess.getoutput(command)
+
+
+def is_positive(c):
+    return 'Y' in c or 'y' in c or 'YES' in c or 'yes' in c or 'Д' in c or 'д' in c or 'ДА' in c or 'да' in c
+
+
+def create_alias(alias_name, package_name):
+    filename = "/usr/bin/" + alias_name
+    run_command = "snap run " + package_name
+    content = '"#! /bin/sh\n' + run_command + '\n"'
+    is_ok = is_success("sudo touch " + filename)
+    
+    if not is_ok:
+        return False
+    
+    is_ok = is_success("sudo echo " + content + " >> " + filename)
+    
+    if not is_ok:
+        return False
+    
+    is_ok = is_success("sudo chmod +x " + filename)
+    
+    if is_ok:
+        print("Snap package " + package_name + " successfully installed. Use " + alias_name + " to run.")
+    
+    return is_ok
+
+
+def choose_package(name):
+    find_result = get_output("snap find " + name).split("\n")
+    check_for_error(len(find_result) > 1, "No package named " + name + " found")
+    print("Found " + str(len(find_result) - 1) + " packages:\n")
+    print("Number\t" + find_result[0])
+    
+    for i in range(1, len(find_result)):
+        print(str(i) + ". ", end="\t")
+        print(find_result[i])
+    
+    choise = input("\nEnter suitable package number in list. If there is no such, enter any other key: ")
+    check_for_error(choise.isdigit(), "No suitable package found", 0)
+    chosen_string = find_result[int(choise)].split()
+    result = chosen_string[0]
+    
+    check_for_error(result != default_string, "Error in chosing package")
+    
+    return result
+
+
+def find_suitable_alias(given_alias):
+    alias = given_alias
+    choise = input("Is alias " + alias + " suitable? (y/n): ")
+        
+    if not is_positive(choise):
+        alias = input("Enter suitable alias: ")
+    
+    return alias
+
+
+def choose_alias(package_name, given_alias=""):
+    if given_alias != "":
+        return find_suitable_alias(given_alias)
+    
+    find_result = get_output("snap find " + package_name).split("\n")
+    check_for_error("." in "\n".join(find_result), "No package named " + package_name + " found")
+    chosen_string = find_result[0].split()
+    alias = chosen_string[0].lower()
+    
+    return find_suitable_alias(alias)
+
+
+parser = argparse.ArgumentParser(
+                    prog='snap-install',
+                    description='This program uses snap to install programs and creates small scripts in /usr/bin to easily run them. Run from root omly.',
+                    epilog='Created by bialger.'
+)
+
+parser.add_argument('package_name', type=str, help='Name of reqired package')
+parser.add_argument(
+    '-a'
+    '--alias',
+    type=str,
+    default=default_string,
+    help='Alias for the package (default: Find in snap)'
+)
+parser.add_argument(
+    '-b'
+    '--branch',
+    type=str,
+    default="stable",
+    help='Use this branch to install package (default: stable)'
+)
+parser.add_argument(
+    '-c'
+    '--classic',
+    action='store_true',
+    help='Should this package be installed with classic connections (default: False)'
+)
+
+check_for_error(platform.system() == "Linux", "This script can be started only on Linux")
+
+args = parser.parse_args()
+
+check_for_error(get_output("whoami") == "root", "Run this script only from root (use sudo)")
+check_for_error(is_success("snap --version"), "No snap installed")
+
+keys = "--" + args.b__branch
+
+if args.c__classic:
+    keys += " --classic"
+
+snap_path = get_output("whereis snap").split()[1]
+package_name = args.package_name
+output = get_output("yes | " + snap_path + " install " + keys + " " + package_name)
+
+if not is_success("snap run " + package_name):
+    package_name = choose_package(package_name)
+    output = get_output("yes | " + snap_path + " install " + keys + " " + package_name)
+
+print(output)
+    
+
+check_for_error(is_success("snap run " + package_name), "No snap package named " + package_name)
+
+alias = args.a__alias
+    
+if alias == default_string and package_name != args.package_name:
+    alias = choose_alias(package_name)
+elif alias == default_string:
+    alias = choose_alias(package_name, package_name.lower())
+
+check_for_error(create_alias(alias, package_name), "Could not create alias for " + package_name)
